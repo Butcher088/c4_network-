@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>网络拓扑</title>
+    <link rel="stylesheet" href="https://cdn.staticfile.org/bootstrap/5.0.0-alpha2/scss/bootstrap.scss" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+    <script type="text/javascript" src="https://cdn.staticfile.org/jquery/1.12.4/jquery.min.js"></script>
+    <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+    <!--<script type="text/javascript" src="js/vis-network.min.js"></script>-->
+    <style type="text/css">
+        #mynetwork {
+            width: 600px;
+            height: 600px;
+        }
+        *{padding: 0;margin: 0;}
+        .menu{
+            /*这个样式不写，右键弹框会一直显示在画布的左下角*/
+            position: absolute;
+            background: rgba(3,3,3,0.6);
+            border-radius: 5px;
+            left: -99999px;
+            top: -999999px;
+        }
+        .menu ul{list-style: none}
+        .menu ul li{
+            padding: 5px 10px;
+            color: #ffff;
+            border-bottom: 1px solid #ffffff;
+            font-size: 14px;
+            cursor: pointer;
+            list-style: none;
+        }
+        .menu ul li:hover{
+            color: #659bc5;
+        }
+        .menu ul li:last-child{
+            border-bottom: none;
+            padding: 5px 10px 0 10px;
+        }
+    </style>
+</head>
+<body>
+<div id="mynetwork"></div>
+<!--菜单操作-->
+<div id="menuOperation" class="menu" style="display: none;">
+    <ul>
+        <li><span class="glyphicon glyphicon-off" aria-hidden="true"></span> 下线</li>
+        <li><span class="glyphicon glyphicon-road" aria-hidden="true"></span> 通行</li>
+    </ul>
+</div>
+<!--节点悬停-->
+<div class="menu" id="divHoverNode" style="display: none;">
+    <!--<ul></ul>-->
+</div>
+<script type="text/javascript">
+    // 创建节点数据数组
+    var allNodes = [
+        
+        {id: 1,name: "外部网络",type: "switch",ip:"1.1.1.1",port:"未知",pid:0,subids: [3,4,5,6]},
+        {id: 2,name: "交换机",type: "switch",ip:"192.168.30.125",mac:"48:de:3d:e2:49:a8",model:"H3C",uptime:"2020-09-03 10:50:50",port:"22",pid:1, subids: [3, 4, 5, 6]},
+
+        {id: 3,name: "交换机",type: "switch",ip:"192.168.1.8",mac:"cd:bd:3d:e2:55:55",model:"pf",uptime:"2020-09-03 10:50:50",port:"33",pid:1,subids: [7, 8]},
+        {id: 4,name: "交换机",type: "switch",ip:"192.168.1.8",mac:"cd:bd:3d:e2:55:55",model:"pf",uptime:"2020-09-03 10:50:50",port:"33",pid:1,subids: [7, 8]},
+        {id: 5,name: "交换机",type: "switch",ip:"192.168.1.8",mac:"cd:bd:3d:e2:55:55",model:"pf",uptime:"2020-09-03 10:50:50",port:"33",pid:1,subids: [9, 10]},
+        {id: 6,name: "交换机",type: "switch",ip:"192.168.1.8",mac:"cd:bd:3d:e2:55:55",model:"pf",uptime:"2020-09-03 10:50:50",port:"33",pid:1,subids: [9, 10]},
+
+        {id: 7,name: "交换机",type: "switch",ip:"192.168.1.8",mac:"cd:bd:3d:e2:55:55",model:"pf",uptime:"2020-09-03 10:50:50",port:"33",pid: 3,subids: [7, 8]},
+        {id: 8,name: "交换机",type: "switch",ip:"192.168.1.8",mac:"cd:bd:3d:e2:55:55",model:"pf",uptime:"2020-09-03 10:50:50",port:"33",pid: 4,subids: [7, 8]},
+        {id: 9,name: "交换机",type: "switch",ip:"192.168.1.8",mac:"cd:bd:3d:e2:55:55",model:"pf",uptime:"2020-09-03 10:50:50",port:"33",pid: 5,subids: [9, 10]},
+        {id: 10,name: "交换机",type: "switch",ip:"192.168.1.8",mac:"cd:bd:3d:e2:55:55",model:"pf",uptime:"2020-09-03 10:50:50",port:"33",pid:6,subids: [9, 10]},
+
+        {id: 11,name: "计算机",type: "computer",ip:"192.168.1.8",mac:"cd:bd:3d:e2:55:55",model:"pf",uptime:"2020-09-03 10:50:50",port:"33",pid: 7},
+        {id: 12,name: "计算机",type: "computer",ip:"192.168.1.8",mac:"cd:bd:3d:e2:55:55",model:"pf",uptime:"2020-09-03 10:50:50",port:"33",pid: 7},
+        {id: 13,name: "计算机",type: "computer",ip:"192.168.1.8",mac:"cd:bd:3d:e2:55:55",model:"pf",uptime:"2020-09-03 10:50:50",port:"33",pid: 8},
+        {id: 14,name: "计算机",type: "computer",ip:"192.168.1.8",mac:"cd:bd:3d:e2:55:55",model:"pf",uptime:"2020-09-03 10:50:50",port:"33",pid: 8},
+        {id: 15,name: "计算机",type: "computer",ip:"192.168.1.8",mac:"cd:bd:3d:e2:55:55",model:"pf",uptime:"2020-09-03 10:50:50",port:"33",pid: 9},
+        {id: 16,name: "计算机",type: "computer",ip:"192.168.1.8",mac:"cd:bd:3d:e2:55:55",model:"pf",uptime:"2020-09-03 10:50:50",port:"33",pid: 9},
+        {id: 17,name: "计算机",type: "computer",ip:"192.168.1.8",mac:"cd:bd:3d:e2:55:55",model:"pf",uptime:"2020-09-03 10:50:50",port:"33",pid: 10},
+        {id: 18,name: "计算机",type: "computer",ip:"192.168.1.8",mac:"cd:bd:3d:e2:55:55",model:"pf",uptime:"2020-09-03 10:50:50",port:"33",pid: 10},
+
+      
+
+    ];
+    // 创建边数据数组
+    var allEdges = [
+        
+        { id:"1_3",from: 1, to: 3 },
+        { id:"1_4",from: 1, to: 4 },
+        { id:"1_5",from: 1, to: 5 },
+        { id:"1_6",from: 1, to: 6 },
+        { id:"2_3",from: 2, to: 3 },
+        { id:"2_4",from: 2, to: 4 },
+        { id:"2_5",from: 2, to: 5 },
+        { id:"2_6",from: 2, to: 6 },
+
+        { id:"3_7",from: 3, to: 7 },
+        { id:"3_8",from: 3, to: 8 },
+        { id:"4_7",from: 4, to: 7 },
+        { id:"4_8",from: 4, to: 8 },
+
+        { id:"5_9",from: 5, to: 9 },
+        { id:"5_10",from: 5, to: 10 },
+        { id:"6_9",from: 6, to: 9 },
+        { id:"6_10",from: 6, to: 10 },
+
+        { id:"7_11",from: 7, to: 11 },
+        { id:"7_12",from: 7, to: 12 },
+        { id:"8_13",from: 8, to: 13 },
+        { id:"8_14",from: 8, to: 14 },
+        { id:"9_15",from: 9, to: 15 },
+        { id:"9_16",from: 9, to: 16 },
+        { id:"10_17",from: 10, to: 17},
+        { id:"10_18",from: 10, to: 18 },
+
+    ];
+    /**
+     * 自定义图片
+     */
+
+    // 创建边数据数组
+
+
+    for (var i = 0;i < allNodes.length;i++){
+        if (allNodes[i].type == 'Internet'){
+            allNodes[i].image = 'image/internet.png';
+        }
+        if (allNodes[i].type == 'switch'){
+            allNodes[i].image = 'image/switch.png';
+        }
+        if (allNodes[i].type == 'hub'){
+            allNodes[i].image = 'image/hub.png';
+        }
+        if (allNodes[i].type == 'computer'){
+            allNodes[i].image = 'image/computer.png';
+        }
+        if (allNodes[i].type == 'rooter'){
+            allNodes[i].image = 'image/rooter.png';
+        }
+        if (allNodes[i].type == 'service'){
+            allNodes[i].image = 'image/service.png';
+        }
+        if (allNodes[i].type == 'print'){
+            allNodes[i].image = 'image/print.png';
+        }
+        if (allNodes[i].type == 'phone'){
+            allNodes[i].image = 'image/phone.png';
+        }
+    }
+    // 获取容器
+    var container = document.getElementById('mynetwork');
+    // 创建节点对象
+    var nodes = new vis.DataSet(allNodes);
+    // 创建连线对象
+    var edges = new vis.DataSet(allEdges);
+    // 将数据赋值给vis 数据格式化器
+    var data = {
+        nodes: nodes,
+        edges: edges
+    };
+    console.log('nodes',data.nodes);
+ 
+    var options = {
+        nodes:{
+            shape: 'image'//设置图片
+          },
+        interaction:{
+            hover:true,
+            hoverConnectedEdges: true
+        },
+        layout: {
+            //树形
+        },
+    };
+ 
+ 
+    // 初始化关系图
+    var network = new vis.Network(container, data, options);
+ 
+    /**
+     * 节点鼠标悬停（点击）获取到的信息
+     * 因为hoverNode事件官方文档中给的信息悬停时只传了id值，想在鼠标悬停的时候显示该节点的信息拿不到值，所以遍历节点，相等的时候return改节点的信息
+     * @param option-----鼠标悬停时取得的id
+     * @returns {{flag, port, ip, name, ignore, id, type}|{flag, port, ip, name, ignore, model, id, type, mac, uptime}|{flag, port, ip, name, ignore, model, location, id, type, mac, account, uptime}|*}
+     */
+    function getNode(option) {
+        for (var i = 0;i < allNodes.length;i++){
+            if (option == allNodes[i].id){
+                // console.log('i',allNodes[i]);
+                return allNodes[i];
+            }
+        }
+    }
+ 
+    /**
+     * 线悬停（点击）时两端节点的信息（与节点类似）
+     * edges中加了id属性，代表线条指向，悬停时通过edges--id与nodes--id对比，将两端节点信息拼凑出来
+     * @param option----鼠标悬停在线上时取得的id
+     * @returns {Array}
+     */
+    function getEdge(option){
+        var linkId = option;
+        var linkIdFirst = linkId.substring(0,1);//截取第一位
+        var linkIdLast = linkId.substring(linkId.length-1,linkId.length);//截取最后一位
+        var dataList = [];//存放线条两边的节点nodes数据
+        for (var j =0;j<allNodes.length;j++){
+            if (linkIdFirst == allNodes[j].id || linkIdLast == allNodes[j].id){
+                dataList.push(allNodes[j]);
+            }
+        }
+        return dataList;
+    }
+    //todo  悬停在节点上--显示弹框
+    network.on('hoverNode',function(properties){
+        // console.log('悬停节点',properties);
+        var hoveNodeList = getNode(properties.node);
+        // console.log('hoveNodeList',hoveNodeList);
+        var deviceType = hoveNodeList.type;
+        var imgPathSrc = hoveNodeList.image;
+        if (deviceType == "Internet" || deviceType == "hub"){
+            var $ul = "<ul>"
+                +"<li><img src=' "+imgPathSrc+" ' width='30px' height='25px'><span> "+hoveNodeList.name+" </span> </li>"
+                +"</ul>";
+            $("#divHoverNode").append($ul);
+        }
+        else if (deviceType == "switch"){
+            var $ul = "<ul>"
+                +"<li><img src=' "+imgPathSrc+" ' width='30px' height='25px'><span> 设备类型： "+hoveNodeList.name+" </span> </li>"
+                +"<li>IP："+ hoveNodeList.ip+"</li>"
+                +"<li>MAC："+ hoveNodeList.mac+"</li>"
+                +"<li>设备型号："+ hoveNodeList.model+"</li>"
+                +"</ul>";
+            $("#divHoverNode").append($ul);
+        }else{
+            var $ul = "<ul>"
+                +"<li><img src=' "+imgPathSrc+" ' width='30px' height='25px'><span> 设备类型："+hoveNodeList.name+" </span> </li>"
+                +"<li>IP："+ hoveNodeList.ip+"</li>"
+                +"<li>MAC："+ hoveNodeList.mac+"</li>"
+                +"<li>账号："+ hoveNodeList.account+"</li>"
+                +"<li>所在位置："+ hoveNodeList.location+"</li>"
+                +"<li>最后登录时间："+ hoveNodeList.uptime+"</li>"
+                +"</ul>";
+            $("#divHoverNode").append($ul);
+        }
+        $('#divHoverNode').css({
+            'display': 'block',
+            'left': properties.event.offsetX + 15,
+            'top' : properties.event.offsetY + 15
+        });
+        $('#menuOperation').hide();
+    });
+    //todo  从节点移开---隐藏弹框
+    network.on('blurNode',function(){
+        $("#divHoverNode").hide();
+        $("#divHoverNode").empty();//移除之后清空div
+    });
+    //todo  悬停在边上--显示弹框
+    network.on('hoverEdge',function(properties){
+        // console.log('悬停边',properties);
+        var hoveEdgeList = getEdge(properties.edge);
+        // console.log('hoveEdgeList',hoveEdgeList);
+        var $ul = "<ul>"
+            +"<li>名称："+ hoveEdgeList[0].name+"->"+hoveEdgeList[1].name+"</li>"
+            +"<li>端口号："+ hoveEdgeList[0].ip+"->"+hoveEdgeList[1].ip+"</li>"
+            +"</ul>";
+        $("#divHoverNode").append($ul);
+        $('#divHoverNode').css({
+            'display': 'block',
+            'left': properties.event.offsetX + 15,
+            'top' : properties.event.offsetY + 15
+        });
+        $('#menuOperation').hide();
+    });
+    //todo  从边上移开---隐藏弹框
+    network.on('blurEdge',function(properties){
+        $("#divHoverNode").hide();
+        $("#divHoverNode").empty();//移除之后清空div
+    });
+    //todo  点击的判断是否选中节点时候显示隐藏
+    network.on('click',function(properties){
+        var clickNodeList = getNode(properties.nodes[0]);
+        // console.log('clickNodeList',clickNodeList);
+        if (typeof(clickNodeList) == "undefined") {
+            $('#menuOperation').hide();
+        }else{
+            $('#menuOperation').css({
+                'display': 'block',
+                'left': properties.event.center.x + 15,
+                'top' : properties.event.center.y + 15
+            });
+            $("#divHoverNode").hide();
+        }
+    });
+    
+    //todo 双击时折叠和展开
+    network.on("doubleClick", function(params) {//双击事件
+        if (params.nodes.length != 0) {//确定为节点双击事件
+            var click_node_id = params.nodes[0];
+            remove_all_sub_nodes(click_node_id);
+        }
+    });
+ 
+    //todo 删除下级所有节点
+    function remove_all_sub_nodes(node_id) {
+        var sub_nodes = get_directly_sub_nodes(node_id);
+        // console.log('sub_nodes',sub_nodes)
+        if (sub_nodes.length == 0) {//当前点击的为叶子节点
+            //判断是否有下级节点
+            // console.log('sub',allNodes[node_id - 1]['subids']);
+            if (typeof (allNodes[node_id - 1]['subids']) != 'undefined') {
+                $.each(allNodes[node_id - 1]['subids'], function(index, item) {
+                    // console.log('allNodes[item - 1]',allNodes[item - 1])
+                    nodes.add(allNodes[item - 1]);
+                    edges.add({id: node_id + '_' + item, from: node_id, to: item});
+                });
+            } else {
+                alert('当前为叶子节点');
+            }
+        } else {
+            $.each(sub_nodes, function(index, item) {
+                var sub_sub_nodes = get_directly_sub_nodes(item);
+                if (sub_sub_nodes.length == 0) {
+                    nodes.remove({id: item});
+                    edges.remove({id: node_id + '_' + item});
+                } else {
+                    remove_all_sub_nodes(item);
+                }
+                nodes.remove({id: item});
+                edges.remove({id: node_id + '_' + item});
+            });
+        }
+    }
+ 
+    //todo 获取某节点直属下级节点
+    function get_directly_sub_nodes(node_id) {
+        var return_nodes = [];
+        var connectedNodes = network.getConnectedNodes(node_id);//获取所有连接节点
+        $.each(connectedNodes, function(index, item) {
+            // console.log('allNodes',allNodes)
+            if (item != allNodes[node_id - 1]['pid']) {//当前节点的父节点 ，不操作
+                return_nodes.push(item);
+            }
+        });
+        return return_nodes;
+    }
+</script>
+</body>
+ 
